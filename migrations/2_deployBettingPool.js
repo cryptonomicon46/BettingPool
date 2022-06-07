@@ -45,12 +45,7 @@ const ids =[46,93,99,27,5];
 
 const  maxAmounts = [50,25,25,25,0];
 
-// const royaltyFees = 5;
-const maxMintamount = 10;
 
-
-
-// = 10000000000000000;
 module.exports = async function (deployer) {
     deployer.deploy(BettingPool,
         ids,

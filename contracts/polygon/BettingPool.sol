@@ -104,6 +104,7 @@ contract BettingPool is ERC1155{
     event WithdrawEvent(address account,uint256 amount);
     event BettingPoolChanged(BettingPoolSel);
     event TokenURIChanged(string URI_,uint256 _tokenId);
+    event  DevAddressChanged(address devAddress_);
 
 
     bool locked;
@@ -203,6 +204,7 @@ contract BettingPool is ERC1155{
         ids = ids_;
         prices = prices_;
         maxAmounts = maxAmounts_;
+
         for(uint i =0; i< ids.length; i++) {
             _idToidx[ids[i]] = i;
             nftInfo.push(NFTInfo({
@@ -212,7 +214,11 @@ contract BettingPool is ERC1155{
                   }));
             _tokenURI[ids[i]] = string.concat(_baseURI,Strings.toString(ids[i]),baseExtension);
         }
+
     }
+
+
+
   
 
 //Test campaign mint date is 1 minute from block.timestamp and accepts bids for 30 seconds only
@@ -252,7 +258,7 @@ function bet(uint campaignId_,uint racerNum_)
         timedTransitions(campaignId_)
         atStage(campaignId_,Stages.AcceptingBets) 
         {
-
+         require(msg.sender != owner && msg.sender != devAddress,"Owner and devs cannot bid on this auction");
 
             if (block.timestamp > mintEndTime) revert ContractExpired();
             if (campaignId_ <=0) revert IndexError();
@@ -493,18 +499,16 @@ function returnNumberBidders(uint campaignId_,uint racerNum_)
     
 
     //ERC1155: Returns the tokenURI of TokenId
-    function uri(uint256 tokenId) override public view returns (string memory) {
-        require (bytes(_tokenURI[tokenId]).length !=0, "This token doesn't exist!");
-        return string(abi.encodePacked(_baseURI,Strings.toString(tokenId),baseExtension));
-
+    function uri(uint256 id) override public view returns (string memory) {
+        require (bytes(_tokenURI[id]).length !=0, "This token doesn't exist!");
+        return _tokenURI[id];
     }
 
 
     //ERC1155: Change the tokenURI if needed on a per token basis
-    function setTokenURI(string memory URI_,uint256 id) public onlyBy(owner) {
-        // require(bytes(_tokenURI[id]).length !=0,"Cannot reassign the token URI");
-        _tokenURI[id] = URI_;
-        emit TokenURIChanged(URI_,id);
+    function setTokenURI(string memory baseURI_,uint256 id) public onlyBy(owner) {
+        _tokenURI[id] = string.concat(baseURI_,Strings.toString(id),baseExtension);
+        emit TokenURIChanged(_tokenURI[id],id);
     }
 
     function getNFTInfo(uint tokenId) public view returns (NFTInfo memory) {
@@ -551,6 +555,19 @@ function setAddresses(address payable devAddress_)
     onlyBy(owner)  
     {
         devAddress = devAddress_;
+        emit DevAddressChanged(devAddress);
     }
+
+
+function getAddresses()
+    external
+    view 
+    returns (address) 
+
+    {
+        return devAddress;
+    }
+
+
 
 }

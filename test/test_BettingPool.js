@@ -1,6 +1,4 @@
 
-
-
 const BettingPool = artifacts.require("./BettingPool")
 
 
@@ -14,38 +12,45 @@ require('chai')
 
 const EVM_REVERT = 'VM Exception while processing transaction: revert'
 const ids =[46,93,99,27]; 
-const prices =[ web3.utils.toWei("1"),
-                web3.utils.toWei("0.5"),
-                web3.utils.toWei("0.5",),
-                web3.utils.toWei("0.5")];
+// const prices =[ web3.utils.toWei("1"),
+//                 web3.utils.toWei("0.5"),
+//                 web3.utils.toWei("0.5",),
+//                 web3.utils.toWei("0.5"),
+//                 web3.utils.toWei("0.5")
+//             ];
+
+    const prices =[ web3.utils.toWei("0.01"),
+        web3.utils.toWei("0.005"),
+        web3.utils.toWei("0.005",),
+        web3.utils.toWei("0.005")
+    ];
 
 const  maxAmounts = [50,25,25,25];
 
-    // const user = process.env.MM_ACCNT_3
-// contract('MotoPunks', ([deployer, user]) => {
 
     const d = new Date();
 
-    const nftInfo = ["46,1000000000000000000,50",
-                    "93,500000000000000000,25",
-                    "99,500000000000000000,25",
-                    "27,500000000000000000,25",
-                    "27,500000000000000000,0"]
+    const nftInfo = ["46,10000000000000000,50",
+                    "93,5000000000000000,25",
+                    "99,5000000000000000,25",
+                    "27,5000000000000000,25"]
     
     let _tokenURI=  "https://ipfs.io/ipfs/QmcDRWwXCE1LjvdESNZsmc75syTJP2zA8WW9SHEaCwEmkc/{id}.json";
     var tokenURI;
     let newTokenURI = "NewTokenURI{id}.json";
     let base_ext = ".json";
+    
 
 contract('Betting Pool and Mint', async (accounts) => {
     const deployer = accounts[0]
     const devAddress = accounts[1]
     const sender1 = accounts[2]
-    const sender2 = accounts[3]
-     console.log(deployer)
-     console.log(devAddress)
-     console.log(sender1)
-     console.log(sender2)
+    const unauthorized = accounts[3]
+
+     console.log("Deployer Addr:",deployer)
+     console.log("Developer Addr:",devAddress)
+     console.log("Unauthorized Addr:",unauthorized)
+     console.log("Sender1 Addr:",sender1)
 
 
 
@@ -61,244 +66,122 @@ contract('Betting Pool and Mint', async (accounts) => {
                 prices,
                 maxAmounts
             )
+            await bettingPool.setAddresses(devAddress,{from: deployer});
 
             // timeDeployed = NFT_MINT_DATE - Number(milliseconds.toString().slice(0, 3))
         })
 
         it('Returns the contract owner', async () => {
             result = await bettingPool.owner()
-            // result.should.equal(NAME)
-            // console.log(result)
             assert.equal(result,deployer)
         })
-
-        // it('Returns the owner', async () => {
-        //     result = await bettingPool.owner()
-        //     // result.should.equal(SYMBOL)
-        //     assert.equal(result,deployer)
-        // })
-
-        // it('Returns the cost to mint', async () => {
-        //     result = await motoPunks.cost()
-        //     // result.toString().should.equal(COST.toString())
-        //     assert.equal(result.valueOf(),0)
-        // })
-
-        // it('Returns the max supply', async () => {
-        //     result = await motoPunks.maxSupply()
-        //     // result.toString().should.equal(MAX_SUPPLY.toString())
-        //     assert.equal(result.valueOf(),MAX_SUPPLY);
-        // })
     
 
-        // it('Returns the max mint amount', async () => {
-        //     result = await motoPunks.maxMintAmount()
-        //     // result.toString().should.equal('1')
-        //     assert.equal(result,MAX_MINT_AMOUNT)
+        it('Only owner can set beneficiary and developer addresses', async () => {
+
+            await expect(bettingPool.setAddresses
+                (devAddress,{from: unauthorized})).to.be.rejected;    
+
+            await bettingPool.setAddresses(sender1,{from: deployer})
+            result = await bettingPool.getAddresses({from:deployer})
+            console.log("New Developer Addr",result.toString())
+
+        })
+
+
+
+
+        it('Check NFT Info per tokenID', async () => {
+            for(let i =0; i< ids.length; i++) {
+            result = await bettingPool.getNFTInfo(ids[i])
+            // console.log(result.toString())
+            expect(result.toString()).to.equal(nftInfo[i]);
+
+            }
+        })
+
+
+        it('Test if the URI function returns the correct per token URI', async () => {
+            for(let i =0; i< ids.length; i++) {
+            result = await bettingPool.uri(ids[i]);
+            tokenURI = _tokenURI.replace("{id}",ids[i].toString());
+            // console.log(`${result}, ${tokenURI}`);
+            expect(result).to.equal(tokenURI.replace("{id}",ids[i].toString()));
+        }
+        })
+
+
+
+        it("Test to confirm that TokenURI can be changed by owner if needed.", async() => {
+
+            for (let i=0;i< ids.length; i++) {
+                await bettingPool.setTokenURI(newTokenURI.slice(0,11),ids[i].toString(), {from: deployer});
+                result = await bettingPool.uri(ids[i].toString())
+                expect(result).to.equal(newTokenURI.slice(0,11).concat(ids[i].toString().concat(".json")))
+            }
+        })
+
+
+
+                
+        // it('Only owner can set the campaigns', async () => {
+        //     await bettingPool.setAddresses(beneficiary,devAddress,{from: deployer})
+        //     await expect(bettingPool.mintSingle("46",1,'1654635083695',{from: unauthorized,value: "1"})).to.be.rejected;
         // })
 
-        // it('Returns the time deployed', async () => {
-        //     result = await motoPunks.timeDeployed()
-        //     console.log("Time Deployed =",result.toString())
 
-        //     if (result > 0) {
-        //         assert.isTrue(true)
-        //     } else {
-        //         console.log(result)
-        //         assert.isTrue(false)
-        //     }
-        // })
 
-        // it('Returns the amount of seconds from deployment to wait until minting', async () => {
-        //     let buffer = 10
-        //     let target = Number(milliseconds.toString().slice(0, 3))
-        //     result = await motoPunks.allowMintingAfter()
-        //     result = Number(result)
-        //     console.log(target, result)
-        //     // NOTE: Sometimes the seconds may be off by 1, As long as the seconds are 
-        //     // between the buffer zone, we'll pass the test
-        //     if (result > (target - buffer) && result <= target) {
-        //         assert.isTrue(true)
-        //     } else {
-        //         assert.isTrue(false)
-        //     }
-        // })
 
-        // it('Returns how many seconds left until minting allowed', async () => {
-        //     let buffer = 10
-        //     let target = Number(milliseconds.toString().slice(0, 3))
-        //     result = await motoPunks.getSecondsUntilMinting()
-        //     console.log("Time until mint=", result.toString())
-        //     result = Number(result)
-        //     if (result > (target -buffer)) {
-        //         assert.isTrue(true)
-        //     } else {
-        //         assert.isTrue(false)
-        //     }
 
-        
-        //     // assert.equal(result,120);
-        // })
-
-        // it('Returns current pause state', async () => {
-        //     result = await motoPunks.isPaused()
-        //     // result.toString().should.equal('false')
-        //     assert.equal(result.toString(),"false")
-        // })
-
-        // it('Returns current reveal state', async () => {
-        //     result = await motoPunks.isRevealed()
-        //     // result.toString().should.equal('true')
-        //     assert.equal(result.toString(),"true")
-        // })
+     
     })
 
-    // describe('Minting', async () => {
-    //     describe('Success', async () => {
-   
 
-    //         let result
+    // describe('Set betting campaigns ', () => {
 
-    //         beforeEach(async () => {
-    //             const NFT_MINT_DATE = Date.now().toString().slice(0, 10) 
-    //             // const NFT_MINT_DATE = Date("February 28, 2022 18:00:00")
-     
-    //             motoPunks = await MotoPunks.new(
-    //                 NAME,
-    //                 SYMBOL,
-    //                 COST,
-    //                 MAX_SUPPLY,
-    //                 NFT_MINT_DATE,
-    //                 IPFS_IMAGE_METADATA_URI,
-    //                 // IPFS_HIDDEN_IMAGE_METADATA_URI,
-    //             )
+    //     // let milliseconds = 120000 // Number between 100000 - 999999
+    //     let result, timeDeployed
 
-    //             result = await motoPunks.mint(1, { from: user, value: web3.utils.toWei('0', 'ether') })
-
-    //         })
-
-    //         it('Returns the address of the minter', async () => {
-    //             let to = result.logs[0].args.to
-    //             assert.equal(user.toString(),to.toString())
-     
-    //         })
-
-    //         it('Updates the total supply', async () => {
-    //             result = await motoPunks.totalSupply()
-    //             result.toString().should.equal('1')
-    //         })
-
-    //         it('Returns IPFS URI', async () => {
-    //             result = await motoPunks.tokenURI(1)
-    //             result.should.equal(`${IPFS_IMAGE_METADATA_URI}1.json`)
-    //         })
-
-    //         it('Returns how many a minter owns', async () => {
-    //             result = await motoPunks.balanceOf(user)
-    //             result.toString().should.equal('1')
-    //         })
-
-    //         it('Returns the IDs of minted NFTs', async () => {
-    //             result = await motoPunks.walletOfOwner(user)
-    //             result.length.should.equal(1)
-    //             result[0].toString().should.equal('1')
-    //         })
-    //     })
+    //     const DURATION = 200;//SECONDS
+    //     var myDate = "26-02-2012";
+    //     myDate = myDate.split("-");
+    //     var newDate = new Date( myDate[2], myDate[1] - 1, myDate[0]);
+    //     console.log(newDate.getTime());
 
 
-    // })
+    //             let dateInAWeek = new Date(); // now
+    //     dateInAWeek.setDate(dateInAWeek.getDate() + 7); // add 7 days
+    //     const deadline = Math.floor(dateInAWeek.getTime() / 1000); // unix timestamp
 
-
-    // describe('Failure', async () => {
-
-    //     let result
+    //     contractName.setDeadline(deadline);
 
     //     beforeEach(async () => {
-    //         // Some date in the future
-    //         const NFT_MINT_DATE = new Date("April 28, 2022 18:00:00").getTime().toString().slice(0, 10)
 
-    //         motoPunks = await MotoPunks.new(
-    //             NAME,
-    //             SYMBOL,
-    //             COST,
-    //             MAX_SUPPLY,
-    //             NFT_MINT_DATE,
-    //             IPFS_IMAGE_METADATA_URI,
-    //             // IPFS_HIDDEN_IMAGE_METADATA_URI,
+    //         bettingPool = await BettingPool.new(
+    //             ids,
+    //             prices,
+    //             maxAmounts
     //         )
+    //         await bettingPool.setAddresses(devAddress,{from: deployer});
+    //         timeDeployed = Math.round(d.getTime()/1000);//time in seconds
 
-    //         console.log(user)
-            
+    //         //Set One MotoGP Campaign 
+    //         await bettingPool.setCampaign('0','1',)
+
+    //         auctionEndTime = Math.round(d.getTime()/1000) + DURATION ;//time in seconds
+
+    //         console.log('StartTime:',timeDeployed,' EndTime:', auctionEndTime);
+    //         // timeDeployed = NFT_MINT_DATE - Number(milliseconds.toString().slice(0, 3))
+    //     })
+    //     it('Developer not allowed to bet', async () => {
+    //         //Create a campaign
+    //         await bettingPool.setCampaign('0','1',)
+    //         await expect(bettingPool.bet("46",1,{from: devAddress,value: "1"})).to.be.rejected;
     //     })
 
-    //     it('Attempt to mint before mint date', async () => {
-    //         await motoPunks.mint(1, { from: user, value: web3.utils.toWei('0', 'ether') }).should.be.rejectedWith(EVM_REVERT)
-    //     })
+
+
+     
     // })
-
-    // describe('Updating Contract State', async () => {
-    //     describe('Success', async () => {
-
-    //         let result
-
-    //         beforeEach(async () => {
-    //             const NFT_MINT_DATE = Date.now().toString().slice(0, 10)
-    //             // console.log(NFT_MINT_DATE)
-
-    //             motoPunks = await MotoPunks.new(
-    //                 NAME,
-    //                 SYMBOL,
-    //                 COST,
-    //                 MAX_SUPPLY,
-    //                 NFT_MINT_DATE,
-    //                 IPFS_IMAGE_METADATA_URI,
-    //                 // IPFS_HIDDEN_IMAGE_METADATA_URI,
-    //             )
-    //         })
-
-    //         it('Sets the cost', async () => {
-    //             let cost = web3.utils.toWei('1', 'ether')
-    //             await motoPunks.setCost(cost, { from: deployer })
-    //             result = await motoPunks.cost()
-    //             result.toString().should.equal(cost)
-    //         })
-
-    //         it('Sets the pause state', async () => {
-    //             let isPaused = true // Opposite of the default contract state
-    //             await motoPunks.setIsPaused(isPaused, { from: deployer })
-    //             result = await motoPunks.isPaused()
-    //             result.toString().should.equal(isPaused.toString())
-    //         })
-
-    //         it('Sets the reveal state', async () => {
-    //             let isRevealed = false // Opposite of the default contract state
-    //             await motoPunks.setIsRevealed(isRevealed, { from: deployer })
-    //             result = await motoPunks.isRevealed()
-    //             result.toString().should.equal(isRevealed.toString())
-    //         })
-
-    //         it('Sets the max batch mint amount', async () => {
-    //             let amount = 5 // Different from the default contract state
-    //             await motoPunks.setmaxMintAmount(5, { from: deployer })
-    //             result = await motoPunks.maxMintAmount()
-    //             result.toString().should.equal(amount.toString())
-    //         })
-
-    //         // it('Sets the IPFS not revealed URI', async () => {
-    //         //     let uri = 'ipfs://IPFS-NEW-IMAGE-METADATA-CID/' // Different from the default contract state
-    //         //     await motoPunks.setNotRevealedURI(uri, { from: deployer })
-    //         //     result = await motoPunks.notRevealedUri()
-    //         //     result.toString().should.equal(uri)
-    //         // })
-
-    //         it('Sets the base extension', async () => {
-    //             let extension = '.example' // Different from the default contract state
-    //             // await motoPunks.setBaseExtension('.example', { from: deployer })
-    //             await motoPunks.setBaseExtension(extension, { from: deployer })
-
-    //             result = await motoPunks.baseExtension()
-    //             result.toString().should.equal(extension)
-    //         })
-    //     })
-    // })
+ 
 })
