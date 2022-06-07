@@ -1,0 +1,11 @@
+{
+    "description": "Marc Marquez Image#7", 
+    "image": "https://ipfs.io/ipfs/QmTHRSUTst13z4otSV3BEbMeJP9yBTNS7AZvfd4txfzi9k/7.png", 
+    "name": "Marquez Wins",
+    "attributes": [
+        { "trait_type": "Team", "value": "Honda" },      
+        { "trait_type": "Country", "value": "Spain" },      
+        { "trait_type": "Skill","value": "Backing it in" }
+    ]
+  }
+

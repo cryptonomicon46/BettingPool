@@ -1,0 +1,12 @@
+{
+    "description": "Valentino Ross Image#10", 
+    "image": "https://ipfs.io/ipfs/QmTHRSUTst13z4otSV3BEbMeJP9yBTNS7AZvfd4txfzi9k/10.png", 
+    "name": "Rossi Wins",
+    "attributes": [
+        { "trait_type": "Team", "value": "Yamaha" },      
+        { "trait_type": "Country", "value": "Italy" },      
+        { "trait_type": "Skill","value": "GOAT" }
+    ]
+  }
+
+

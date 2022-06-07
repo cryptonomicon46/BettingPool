@@ -1,0 +1,35 @@
+{
+  "name": "polydeploy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@maticnetwork/maticjs": "^3.3.0",
+    "@maticnetwork/maticjs-plasma": "^1.0.3",
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/network": "^0.4.3",
+    "@truffle/hdwallet-provider": "^2.0.4",
+    "chai-as-promised": "^7.1.1",
+    "dotenv": "^16.0.0",
+    "web3": "^1.7.1",
+    "web3-eth-accounts": "^1.7.1"
+  },
+  "devDependencies": {
+    "@openzeppelin/cli": "^2.8.2",
+    "@openzeppelin/contracts-ethereum-package": "^3.0.0",
+    "@openzeppelin/gsn-helpers": "^0.2.4",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "@openzeppelin/upgrades": "^2.8.0",
+    "chai": "^4.3.6",
+    "ganache-cli": "^6.12.2",
+    "truffle-plugin-verify": "^0.5.26"
+  }
+}

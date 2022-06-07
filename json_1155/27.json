@@ -1,0 +1,12 @@
+{
+    "description": "Casey Stoner Image#27", 
+    "image": "https://ipfs.io/ipfs/QmTHRSUTst13z4otSV3BEbMeJP9yBTNS7AZvfd4txfzi9k/1.png", 
+    "name": "Casey Stoner Wins",
+    "attributes": [
+        { "trait_type": "Team", "value": "Ducati" },      
+        { "trait_type": "Country", "value": "Australia" },      
+        { "trait_type": "Skill","value": "Elbow Down" }
+    ]
+  }
+
+
