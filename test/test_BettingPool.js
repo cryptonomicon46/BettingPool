@@ -24,7 +24,7 @@ const ids =[46,93,99,27];
         web3.utils.toWei("0.005",),
         web3.utils.toWei("0.005")
     ];
-
+// 24*3600*4
 const  maxAmounts = [50,25,25,25];
 
 
@@ -46,6 +46,9 @@ contract('Betting Pool and Mint', async (accounts) => {
     const devAddress = accounts[1]
     const sender1 = accounts[2]
     const unauthorized = accounts[3]
+    const sender2 = accounts[4]
+    const sender3 = accounts[5]
+
 
      console.log("Deployer Addr:",deployer)
      console.log("Developer Addr:",devAddress)
@@ -77,7 +80,7 @@ contract('Betting Pool and Mint', async (accounts) => {
         })
     
 
-        it('Only owner can set beneficiary and developer addresses', async () => {
+        it('Only owner can set the developer address', async () => {
 
             await expect(bettingPool.setAddresses
                 (devAddress,{from: unauthorized})).to.be.rejected;    
@@ -121,67 +124,147 @@ contract('Betting Pool and Mint', async (accounts) => {
             }
         })
 
+     
+    })
 
 
-                
-        // it('Only owner can set the campaigns', async () => {
-        //     await bettingPool.setAddresses(beneficiary,devAddress,{from: deployer})
-        //     await expect(bettingPool.mintSingle("46",1,'1654635083695',{from: unauthorized,value: "1"})).to.be.rejected;
-        // })
+    describe('Set betting campaigns ', () => {
+
+        // let milliseconds = 120000 // Number between 100000 - 999999
+        let result, timeDeployed
+
+        const DURATION = 200;//SECONDS
+        const bettingStop = 345600;//24*3600*4; //4 days
+
+        const c0_reveal= Date.parse("Sun, June 19, 2022 11:59:00"); //1655665140000
+        const c0_endBet = c0_reveal - bettingStop; //1655664794400
+
+        const c1_reveal= Date.parse("Sun, July 10, 2022 11:59:00"); //1657479540000
+        const c1_endBet = c1_reveal - bettingStop;//1657479194400
+        
+        const c2_reveal= Date.parse("Mon, August 14, 2022 11:59:00"); //1660503540000
+        const c2_endBet = c2_reveal - bettingStop;//1660503194400
+
+        
+        
+
+        beforeEach(async () => {
+
+            bettingPool = await BettingPool.new(
+                ids,
+                prices,
+                maxAmounts
+            )
+            await bettingPool.setAddresses(devAddress,{from: deployer});
+            timeDeployed = Math.round(d.getTime()/1000);//time in seconds
+            // console.log('StartTime:',timeDeployed);
+            
+
+            // timeDeployed = NFT_MINT_DATE - Number(milliseconds.toString().slice(0, 3))
+        })
+        it('Start three campaigns with different start and stop times and check everything.', async () => {
+           
+
+            await expect(bettingPool.setCampaign("0",'1',c0_reveal,c0_endBet,
+                        {from: unauthorized})).to.be.rejected;
+
+            //Create a campaign
+            await bettingPool.setCampaign('0','1',c0_reveal,c0_endBet,{from: deployer})
+            await bettingPool.setCampaign('0','2',c1_reveal,c1_endBet,{from: deployer})
+            await bettingPool.setCampaign('0','3',c2_reveal,c2_endBet,{from: deployer})
+
+        
+            //Check number of campaigns
+            result = await bettingPool.getNumCampaigns({from:deployer})
+            assert.equal(result.toString(),'3')
 
 
+            //Check the stage of the campaigns and make they're accepting bets accepting bets
+            // 0: AcceptingBets
+            // 1: BettingStopped
+            // 2. Reveal Winner
+            result = await bettingPool.getCampaignStage(1,{from: deployer})
+            assert.equal(result.toString(),'0')
+
+            result = await bettingPool.getCampaignStage(2,{from: deployer})
+            assert.equal(result.toString(),'0')
+
+
+            result = await bettingPool.getCampaignStage(3,{from: deployer})
+            assert.equal(result.toString(),'0')
+
+        
+       
+            //Confirm the start and end times
+            result = await bettingPool.getCampaignInfo(1,{from: deployer})
+            // console.log('Campaign1 Reveal Date:',result[2].toString());
+            // console.log('Campaign1 Stop Bet Date:',result[3].toString());
+            assert.equal(c0_endBet.toString(),result[2].toString())
+            assert.equal(c0_reveal.toString(),result[3].toString())
+
+            result = await bettingPool.getCampaignInfo(2,{from: deployer})
+            // console.log('Campaign2 Reveal Date:',result[2].toString());
+            // console.log('Campaign2 Stop Bet Date:',result[3].toString());
+            assert.equal(c1_endBet.toString(),result[2].toString())
+            assert.equal(c1_reveal.toString(),result[3].toString())
+
+            result = await bettingPool.getCampaignInfo(3,{from: deployer})
+            // console.log('Campaign3 Reveal Date:',result[2].toString());
+            // console.log('Campaign3 Stop Bet Date:',result[3].toString());
+            assert.equal(c2_endBet.toString(),result[2].toString())
+            assert.equal(c2_reveal.toString(),result[3].toString())
+
+
+            //Have Accounts bet on the racers and confirm number of bidders and total amount per campaign
+            await bettingPool.bet(1,46,{from:sender1, value:  web3.utils.toWei("0.1")})
+            await bettingPool.bet(1,99,{from:sender1, value:  web3.utils.toWei("0.1")})
+            await bettingPool.bet(1,93,{from:sender1, value:  web3.utils.toWei("0.1")})
+            await bettingPool.bet(1,27,{from:sender1, value:  web3.utils.toWei("0.1")})
+
+            await bettingPool.bet(1,46,{from:sender2, value:  web3.utils.toWei("0.2")})
+            await bettingPool.bet(1,99,{from:sender2, value:  web3.utils.toWei("0.2")})
+            
+            await bettingPool.bet(1,27,{from:sender3, value:  web3.utils.toWei("0.4")})
+
+            result = await bettingPool.getCampaignInfo(1,{from: deployer})
+            assert.equal(result[5].toString(),'7')
+            assert.equal(result[6].toString(),web3.utils.toWei('1.2'))
+
+            //Have Accounts bet on specific racer and confirm number of bidders and total amount
+            result = await bettingPool.returnNumberBidders(1,46,{from:deployer})
+            assert.equal(result.toString(),'2')
+
+            result = await bettingPool.returnNumberBidders(1,93,{from:deployer})
+            assert.equal(result.toString(),'1')
+
+            result = await bettingPool.returnNumberBidders(1,99,{from:deployer})
+            assert.equal(result.toString(),'2')
+
+            result = await bettingPool.returnNumberBidders(1,27,{from:deployer})
+            assert.equal(result.toString(),'2')
+
+
+
+        
+
+            //Advance time End one campaign and then check the stage, confirm remaining campaigns are still active
+            
+            
+            //Check winner for the campaign that ended
+
+            
+            //Confirm the Winner payout
+
+
+            //Confirm the developer payout
+
+
+
+        })
 
 
 
      
     })
-
-
-    // describe('Set betting campaigns ', () => {
-
-    //     // let milliseconds = 120000 // Number between 100000 - 999999
-    //     let result, timeDeployed
-
-    //     const DURATION = 200;//SECONDS
-    //     var myDate = "26-02-2012";
-    //     myDate = myDate.split("-");
-    //     var newDate = new Date( myDate[2], myDate[1] - 1, myDate[0]);
-    //     console.log(newDate.getTime());
-
-
-    //             let dateInAWeek = new Date(); // now
-    //     dateInAWeek.setDate(dateInAWeek.getDate() + 7); // add 7 days
-    //     const deadline = Math.floor(dateInAWeek.getTime() / 1000); // unix timestamp
-
-    //     contractName.setDeadline(deadline);
-
-    //     beforeEach(async () => {
-
-    //         bettingPool = await BettingPool.new(
-    //             ids,
-    //             prices,
-    //             maxAmounts
-    //         )
-    //         await bettingPool.setAddresses(devAddress,{from: deployer});
-    //         timeDeployed = Math.round(d.getTime()/1000);//time in seconds
-
-    //         //Set One MotoGP Campaign 
-    //         await bettingPool.setCampaign('0','1',)
-
-    //         auctionEndTime = Math.round(d.getTime()/1000) + DURATION ;//time in seconds
-
-    //         console.log('StartTime:',timeDeployed,' EndTime:', auctionEndTime);
-    //         // timeDeployed = NFT_MINT_DATE - Number(milliseconds.toString().slice(0, 3))
-    //     })
-    //     it('Developer not allowed to bet', async () => {
-    //         //Create a campaign
-    //         await bettingPool.setCampaign('0','1',)
-    //         await expect(bettingPool.bet("46",1,{from: devAddress,value: "1"})).to.be.rejected;
-    //     })
-
-
-
-     
-    // })
  
 })

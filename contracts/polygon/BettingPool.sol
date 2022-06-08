@@ -18,7 +18,7 @@ contract BettingPool is ERC1155{
     uint EXPIRY = 365 days;
     uint public immutable startedAt;
     address payable public  owner;
-    address public  devAddress; 
+    address internal  devAddress; 
     uint internal  numCampaigns=1;
    uint public mintEndTime;
 //Keep track of the NFT Reserves
@@ -54,8 +54,7 @@ contract BettingPool is ERC1155{
         uint8 raceNum;
         uint mintDate;
         Stages stage;
-        uint creationTime;
-        uint stopDate; //Bidding stopped
+         uint stopDate; //Bidding stopped
         uint revealDate;  //Reveal Winners
         mapping (uint => mapping(address=>bool)) checkDuplicateBet;
         uint numBidders; //Total Number of bidders for all racers in the selected campaign
@@ -173,19 +172,11 @@ contract BettingPool is ERC1155{
     // uint256[]  ids= [46,93,99,27];
     // uint256[]  prices = [1 ether, 0.5 ether, 0.5 ether, 0.5 ether];
     // uint256[]  maxAmounts = [1000,500,400,300];
-    // uint256 private maxMintAmount = 100;
 
       uint256[]  ids;
-    // = [46,93,99,27];
-    uint256[]  prices;
-    //  = [1 ether, 0.5 ether, 0.5 ether, 0.5 ether];
-    // ["1000000000000000000","500000000000000000","500000000000000000","500000000000000000"]
-    uint256[]  maxAmounts;
-    // = [1000,500,400,300];
+       uint256[]  prices;
+       uint256[]  maxAmounts;
 
-// [46,93,99,27]
-// ["1000000000000000000","500000000000000000","500000000000000000","500000000000000000"]
-//  [1000,500,400,300]
     
  constructor  (
                 uint256[] memory ids_,
@@ -225,7 +216,8 @@ contract BettingPool is ERC1155{
 
 function setCampaign( BettingPoolSel bettingPoolSel_,
                         uint8 raceNum_,
-                        uint256 revealDate_
+                        uint256 revealDate_,
+                        uint256 betStopDate_
                         ) public onlyBy(owner) returns (uint campaignID){
 
                     require(raceNum_>0, "Invalid Race Number");
@@ -236,13 +228,14 @@ function setCampaign( BettingPoolSel bettingPoolSel_,
 
                     b_camp.bettingPoolSel= bettingPoolSel_;
                     b_camp.raceNum = raceNum_;
-                    b_camp.creationTime = block.timestamp;
+                    // b_camp.creationTime = block.timestamp;
 
                     // b_camp.revealDate = b_camp.creationTime + 120 seconds;
-                    b_camp.revealDate = b_camp.creationTime + revealDate_;
-  
+                    b_camp.revealDate = revealDate_;
+                    b_camp.stopDate = betStopDate_;
+
                     // b_camp.revealDate = revealDate_;
-                    b_camp.stopDate =  b_camp.revealDate - 20 seconds;
+                    // b_camp.stopDate =  b_camp.revealDate - 20 seconds;
                     // b_camp.stopDate =  b_camp.revealDate - 4 days;
 
                     b_camp.stage = Stages.AcceptingBets;
@@ -429,14 +422,14 @@ function getWinner(uint campaignId_)
 
 
 
-function getCampaignInfo(uint campaignId_) public view returns 
-    (BettingPoolSel,uint8,uint,uint,uint,Stages,uint,uint) {
+function getCampaignInfo(uint campaignId_) external view onlyBy(owner) returns 
+    (BettingPoolSel,uint8,uint,uint,Stages,uint,uint) {
     if(campaignId_ <=0) revert IndexError();
 
     BettingCampaign storage b_camp = _getCampaign(campaignId_);
     return  (b_camp.bettingPoolSel,
             b_camp.raceNum,
-            b_camp.creationTime,
+            // b_camp.creationTime,
             b_camp.stopDate,
             b_camp.revealDate,
             b_camp.stage,
@@ -449,9 +442,9 @@ function _getCampaign(uint campaignId_) internal view returns ( BettingCampaign 
     return b_camp;
 }
 
-function getCampaignStage(uint campaignId_) public view returns ( Stages) {
+function getCampaignStage(uint campaignId_) public view onlyBy(owner) returns ( uint) {
     BettingCampaign storage b_camp = campaigns[campaignId_];
-    return b_camp.stage;
+    return uint(b_camp.stage);
 }
 
 
@@ -463,6 +456,7 @@ function getCampaignStage(uint campaignId_) public view returns ( Stages) {
 function returnNumberBidders(uint campaignId_,uint racerNum_) 
         public 
         view 
+        onlyBy(owner)
         returns (uint) {
             //return length, aka the number of bidders per racerNumber
             BettingCampaign storage b_camp = _getCampaign(campaignId_); //Internal Function
@@ -494,11 +488,7 @@ function returnNumberBidders(uint campaignId_,uint racerNum_)
     }
 
 
-
-
-    
-
-    //ERC1155: Returns the tokenURI of TokenId
+   //ERC1155: Returns the tokenURI of TokenId
     function uri(uint256 id) override public view returns (string memory) {
         require (bytes(_tokenURI[id]).length !=0, "This token doesn't exist!");
         return _tokenURI[id];
@@ -548,8 +538,6 @@ function returnNumberBidders(uint campaignId_,uint racerNum_)
     }
 
 
-
-
 function setAddresses(address payable devAddress_)
     public 
     onlyBy(owner)  
@@ -559,15 +547,18 @@ function setAddresses(address payable devAddress_)
     }
 
 
-function getAddresses()
+function getNumCampaigns()
     external
     view 
-    returns (address) 
+    onlyBy(owner)
+    returns (uint)
+    {return numCampaigns-1;}
 
-    {
-        return devAddress;
-    }
 
+
+function getAddresses() public view onlyBy(owner) returns (address){
+    return (devAddress);
+}
 
 
 }
