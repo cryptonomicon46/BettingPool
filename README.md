@@ -12,7 +12,7 @@ truffle test test/test_BettingPool.js --config truffle-config.polygon.js --netwo
 ==========DEPLOY ON POLYGON TEST NET =========
 truffle compile -all --config truffle-config.polygon.js --network polygon_infura_testnet
 truffle migrate --config truffle-config.polygon.js --network polygon_infura_testnet
-truffle run verify Mint --network polygon_infura_testnet --config truffle-config.polygon.js
+truffle run verify BettingPool --network polygon_infura_testnet --config truffle-config.polygon.js
 
 
 _deployBettingPool.js
@@ -42,4 +42,18 @@ _deployBettingPool.js
    -------------------------------------
    > Total cost:     0.01024486504097946 ETH
 
-https://mumbai.polygonscan.com/address/0xA52bbBFC24104FB17188e69167a7247259b291EB
+Contract addresS:
+Verified Polyscan link: https://mumbai.polygonscan.com/address/0xA52bbBFC24104FB17188e69167a7247259b291EB
+
+
+
+
+
+
+//===========================
+Adding Polygon Mainnet and test net to Metamask
+https://docs.polygon.technology/docs/develop/network-details/network/
+
+
+https://chainlist.org/
+Search for your network and add it

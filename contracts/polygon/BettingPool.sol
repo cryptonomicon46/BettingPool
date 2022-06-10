@@ -232,7 +232,9 @@ function setCampaign( BettingPoolSel bettingPoolSel_,
                     b_camp.bettingPoolSel= bettingPoolSel_;
                     b_camp.raceNum = raceNum_;
                     b_camp.stopDate = betStopDate_;
-                    b_camp.revealDate = betStopDate_ + 345600000;//4 days in seconds
+                    // b_camp.revealDate = betStopDate_ + 345600000;//4 days in ms
+                    b_camp.revealDate = betStopDate_ + 345600;//4 days in seconds
+
                     b_camp.stage = Stages.AcceptingBets;    
         }
 
