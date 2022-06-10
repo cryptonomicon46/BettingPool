@@ -297,12 +297,12 @@ function bet(uint campaignId_,uint racerNum_)
 
 
     function revealWinner(uint campaignId_,uint winningRacer_) 
-        external    
+        public    
         payable
-        // timedTransitions(campaignId_)
+        timedTransitions(campaignId_)
         atStage(campaignId_,Stages.RevealWinner) 
         onlyBy(owner)
-        returns (Payment memory) {
+        returns (address, uint) {
 
         BettingCampaign storage b_camp = _getCampaign(campaignId_);
         // Payment memory payment;
@@ -363,7 +363,7 @@ function bet(uint campaignId_,uint racerNum_)
         // pendingWithdrawal[beneficiaryAddress] = payment.ownerFees;
         pendingWithdrawal[topBidder.addr] = b_camp.payment.winnerAmount;
                           
-        return(b_camp.payment);
+        return(b_camp.payment.winnerAddress,b_camp.payment.winnerAmount);
 }
 
 
