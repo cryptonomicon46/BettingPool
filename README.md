@@ -6,5 +6,5 @@ npm install
 
 ==========DEPLOY ON LOCAL GANACHE =========
 truffle compile --config truffle-config.polygon.js -all
-truffle migrate --config truffle-config.polygon.js --network ganache
+truffle migrate --config truffle-config.polygon.js --network ganache --reset
 truffle test test/test_BettingPool.js --config truffle-config.polygon.js --network ganache
