@@ -18,8 +18,9 @@ contract BettingPool is ERC1155{
     // uint EXPIRY = 365 days;
     uint public immutable startedAt;
     address payable public  owner;
-    address internal  devAddress; 
-    uint internal  numCampaigns=1;
+    // address internal  devAddress; 
+    uint public  numCampaigns=1;
+    address payable public devAddress; //payable?
 //    uint public mintEndTime;
 //Keep track of the NFT Reserves
     struct NFTInfo {
@@ -311,9 +312,9 @@ function bet(uint campaignId_,uint racerNum_)
         b_camp.payment.winnerAmount = (b_camp.payment.totalAmount).sub(b_camp.payment.devFees);
 
         // //Using the pendingWithdrawal method
-        pendingWithdrawal[devAddress] = b_camp.payment.devFees;
+        pendingWithdrawal[devAddress] = pendingWithdrawal[devAddress]  +  b_camp.payment.devFees;
         // pendingWithdrawal[beneficiaryAddress] = payment.ownerFees;
-        pendingWithdrawal[topBidder.addr] = b_camp.payment.winnerAmount;
+        pendingWithdrawal[topBidder.addr] =pendingWithdrawal[topBidder.addr] + b_camp.payment.winnerAmount;
                           }
 
 function getWinner(uint campaignId_) 
