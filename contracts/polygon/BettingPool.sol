@@ -116,6 +116,24 @@ contract BettingPool is ERC1155{
 
 
 
+
+    // modifier atStage(uint campaignId_,Stages _stage) {
+    //     BettingCampaign storage b_camp = _getCampaign(campaignId_);
+
+    //     if (block.timestamp >= b_camp.stopDate)
+    //         b_camp.stage = Stages.Closed;
+    //     if (block.timestamp*1000 >= b_camp.revealDate)
+    //         b_camp.stage = Stages.RevealWinner;
+    //             // _; 
+
+    //     if (b_camp.stage != _stage)
+    //         revert FunctionInvalidAtThisStage();
+    //     _;
+    // }
+
+
+
+
     modifier timedTransitions(uint campaignId_) {
 
         BettingCampaign storage b_camp = _getCampaign(campaignId_);
@@ -144,6 +162,12 @@ contract BettingPool is ERC1155{
     modifier checkStage(uint campaignId_,Stages _stage) {
         BettingCampaign storage b_camp = _getCampaign(campaignId_);
 
+        // if (block.timestamp >= b_camp.stopDate)
+        //     b_camp.stage = Stages.Closed;
+        // if (block.timestamp*1000 >= b_camp.revealDate)
+        //     b_camp.stage = Stages.RevealWinner;
+        //         // _; 
+
         if (b_camp.stage != _stage)
             revert FunctionInvalidAtThisStage();
         _;
@@ -170,16 +194,12 @@ contract BettingPool is ERC1155{
     uint256[]  ids;
     uint256[]  maxAmounts;
 
-    // uint256[]  ids= [46,93,99,27];
-    // uint256[]  maxAmounts = [30,20,20,20];
-
     
  constructor  (
                 uint256[] memory ids_,
                 uint256[] memory maxAmounts_
                 )ERC1155(_baseURI) payable {
  
-
         owner = payable(msg.sender);
         startedAt = block.timestamp; 
         require(ids_.length == maxAmounts_.length,"ERC1155: Input array lenghts aren't the same!");
@@ -191,7 +211,6 @@ contract BettingPool is ERC1155{
             _idToidx[ids[i]] = i;
             nftInfo.push(NFTInfo({
             id: ids[i],
-            // price: prices[i],
             reserves: maxAmounts[i]
                   }));
             _tokenURI[ids[i]] = string.concat(_baseURI,Strings.toString(ids[i]),baseExtension);
@@ -201,7 +220,6 @@ contract BettingPool is ERC1155{
 
 
 //Test campaign mint date is 1 minute from block.timestamp and accepts bids for 30 seconds only
-
 function setCampaign( BettingPoolSel bettingPoolSel_,
                         uint8 raceNum_,
                         uint256 betStopDate_
@@ -211,12 +229,10 @@ function setCampaign( BettingPoolSel bettingPoolSel_,
                     uint campaignID;
                     campaignID = numCampaigns++;            
                     BettingCampaign storage b_camp = campaigns[campaignID];
-
                     b_camp.bettingPoolSel= bettingPoolSel_;
                     b_camp.raceNum = raceNum_;
                     b_camp.stopDate = betStopDate_;
                     b_camp.revealDate = betStopDate_ + 345600000;//4 days in seconds
-
                     b_camp.stage = Stages.AcceptingBets;    
         }
 
@@ -228,8 +244,10 @@ function bet(uint campaignId_,uint racerNum_)
         atStage(campaignId_,Stages.AcceptingBets) 
         {
 
+        require(msg.sender != owner && msg.sender != devAddress,"Owner and devs cannot bid on this auction");
+
             if (campaignId_ <=0) revert IndexError();
-            //Check to see if bidder is a contract?
+
             BettingCampaign storage b_camp = _getCampaign(campaignId_); //Internal Function
           //Accept User's bid and record address and the timeStamp       
             b_camp.bidders[racerNum_].push(Bidder({
@@ -246,37 +264,32 @@ function bet(uint campaignId_,uint racerNum_)
 
 
     function revealWinner(uint campaignId_,uint winningRacer_) 
-        public    
+        external    
         payable
         timedTransitions(campaignId_)
         atStage(campaignId_,Stages.RevealWinner) 
         onlyBy(owner)
         // returns (address, uint) 
         {
-
         BettingCampaign storage b_camp = _getCampaign(campaignId_);
         // Payment memory payment;
-
         b_camp.payment.totalAmount = b_camp.totalAmount; //All proceeds from the campaign to winner , beneficiary and platform
         Bidder memory nextBidder;
         Bidder memory topBidder;
-        // if (b_camp.bidders[winningRacer_].length ==0) revert InvalidOperation();
         topBidder.addr = b_camp.bidders[winningRacer_][0].addr;
         topBidder.amount = b_camp.bidders[winningRacer_][0].amount;
         topBidder.timeStamp = b_camp.bidders[winningRacer_][0].timeStamp;
-
-      
+        
         for (uint i=1; i< b_camp.bidders[winningRacer_].length; i++) {
             //Track amount and timestamp for conflict resolution
             nextBidder.addr = b_camp.bidders[winningRacer_][i].addr;
             nextBidder.amount = b_camp.bidders[winningRacer_][i].amount;
-            nextBidder.timeStamp = b_camp.bidders[winningRacer_][i].timeStamp;    
-
+            nextBidder.timeStamp = b_camp.bidders[winningRacer_][i].timeStamp;
+         
             if (nextBidder.amount > topBidder.amount) {
                 topBidder.addr = nextBidder.addr;
                 topBidder.amount = nextBidder.amount;
-                topBidder.timeStamp=  nextBidder.timeStamp;
-               
+                topBidder.timeStamp=  nextBidder.timeStamp;              
             }
             else if ( nextBidder.amount == topBidder.amount && nextBidder.timeStamp < topBidder.timeStamp){
                 topBidder.addr = nextBidder.addr;
@@ -285,7 +298,6 @@ function bet(uint campaignId_,uint racerNum_)
             }
 
         }
-
 
         b_camp.payment.winnerAddress = topBidder.addr;
         b_camp.payment.timeStamp=  topBidder.timeStamp;
@@ -298,13 +310,9 @@ function bet(uint campaignId_,uint racerNum_)
 
         // //Using the pendingWithdrawal method
         pendingWithdrawal[devAddress] = b_camp.payment.devFees;
+        // pendingWithdrawal[beneficiaryAddress] = payment.ownerFees;
         pendingWithdrawal[topBidder.addr] = b_camp.payment.winnerAmount;
-                          
-        // return(b_camp.payment.winnerAddress,b_camp.payment.winnerAmount);
-}
-
-
-
+                          }
 
 function getWinner(uint campaignId_) 
         external 
@@ -323,27 +331,18 @@ function getWinner(uint campaignId_)
 
     function mintSingle(uint256 _id,address highestBidder)
      internal
-    // mintTimedTransitions() 
-    // atMintStage(MintStage.MintLive) 
     {
        if (msg.sender == address(0)) revert InvalidAddress();
-
-        // require(msg.sender != owner && msg.sender != beneficiary && msg.sender != devAddress,"Owner, beneficiary and devs cannot bid on this auction");
-             
+           
         uint256 _idx;
         _idx =  _idToidx[_id];
         uint256 nftReserves;
-
-    //    price = nftInfo[_idx].price;
-      nftReserves = nftInfo[_idx].reserves;
-  
+        nftReserves = nftInfo[_idx].reserves;
         require( nftReserves >= 0,"ERC1155: Sorry, this NFT's sold out!");
-        // require(price.mul(_amount) <= msg.value,"ERC1155: You don't have enough funds.");
-
         //Update NFT Reserves
         _updateReserves(_idx,1);
 
-       //Mint to the calling account address
+        //Mint to the calling account address
         _mint(highestBidder,_id,1,""); //1:1 NFT minted to the  winner of the campaign
 
     }
@@ -360,46 +359,45 @@ function getWinner(uint campaignId_)
         
     }
 
-function getCampaignInfo(uint campaignId_) external view onlyBy(owner) returns 
-    (BettingPoolSel,uint8,uint,uint,Stages,uint,uint) {
-    if(campaignId_ <=0) revert IndexError();
+    function getCampaignInfo(uint campaignId_) external view onlyBy(owner) returns 
+        (BettingPoolSel,uint8,uint,uint,Stages,uint,uint) {
+        if(campaignId_ <=0) revert IndexError();
 
-    BettingCampaign storage b_camp = _getCampaign(campaignId_);
-    return  (b_camp.bettingPoolSel,
-            b_camp.raceNum,
-            b_camp.stopDate,
-            b_camp.revealDate,
-            b_camp.stage,
-            b_camp.numBidders,
-            b_camp.totalAmount);
-}
+        BettingCampaign storage b_camp = _getCampaign(campaignId_);
+        return  (b_camp.bettingPoolSel,
+                b_camp.raceNum,
+                b_camp.stopDate,
+                b_camp.revealDate,
+                b_camp.stage,
+                b_camp.numBidders,
+                b_camp.totalAmount);
+    }
 
-function _getCampaign(uint campaignId_) internal view returns ( BettingCampaign storage) {
-    BettingCampaign storage b_camp = campaigns[campaignId_];
-    return b_camp;
-}
+    function _getCampaign(uint campaignId_) internal view returns ( BettingCampaign storage) {
+        BettingCampaign storage b_camp = campaigns[campaignId_];
+        return b_camp;
+    }
 
-function getCampaignStage(uint campaignId_) public view onlyBy(owner) returns ( uint) {
-    BettingCampaign storage b_camp = campaigns[campaignId_];
-    return uint(b_camp.stage);
-}
-
+    function getCampaignStage(uint campaignId_) public view onlyBy(owner) returns ( uint) {
+        BettingCampaign storage b_camp = campaigns[campaignId_];
+        return uint(b_camp.stage);
+    }
 
 
     function currentBlockStamp() public view onlyBy(owner) returns (uint) {
         return block.timestamp;
     }
 
-function returnNumberBidders(uint campaignId_,uint racerNum_) 
-        public 
-        view 
-        onlyBy(owner)
-        returns (uint) {
-            //return length, aka the number of bidders per racerNumber
-            BettingCampaign storage b_camp = _getCampaign(campaignId_); //Internal Function
-            return b_camp.bidders[racerNum_].length;
+    function returnNumberBidders(uint campaignId_,uint racerNum_) 
+            public 
+            view 
+            onlyBy(owner)
+            returns (uint) {
+                //return length, aka the number of bidders per racerNumber
+                BettingCampaign storage b_camp = _getCampaign(campaignId_); //Internal Function
+                return b_camp.bidders[racerNum_].length;
 
-        }
+    }
 
 
     function setCampaignStage(uint campaignId_, uint stage_) external onlyBy(owner) {
@@ -407,10 +405,9 @@ function returnNumberBidders(uint campaignId_,uint racerNum_)
         b_camp.stage = Stages(stage_);
 
     }
-  
+    
 
-
-   //ERC1155: Returns the tokenURI of TokenId
+    //ERC1155: Returns the tokenURI of TokenId
     function uri(uint256 id) override public view returns (string memory) {
         require (bytes(_tokenURI[id]).length !=0, "This token doesn't exist!");
         return _tokenURI[id];
@@ -427,7 +424,7 @@ function returnNumberBidders(uint campaignId_,uint racerNum_)
         require (bytes(_tokenURI[tokenId]).length !=0, "This token doesn't exist!");
         uint idx_ = _idToidx[tokenId];
         return nftInfo[idx_];
-}   
+    }   
 
     function _updateReserves(uint256 _idx,uint256 amount) internal {
         if (nftInfo[_idx].reserves < amount) revert ErrorNFTReserves();
@@ -439,15 +436,10 @@ function returnNumberBidders(uint campaignId_,uint racerNum_)
     function withdraw() external payable noReentrancy {
         uint256 amount = pendingWithdrawal[msg.sender];
         // if (amount <=0) revert NothingToWithdraw();
-
         pendingWithdrawal[msg.sender] = 0;
-        // payable(msg.sender).transfer(amount);
-        //Since the transfer method is no longer safe to use due to gas cost fluctiation, only sends 2300 gas
-        //Call forwards all the gas, risk of reentrance attack, so use reentrance guard modifier
         (bool success2,) = payable(msg.sender).call{value: amount}("");
         require(success2,"Owner payment transaction failed!");
-
-    emit WithdrawEvent(msg.sender,amount);
+         emit WithdrawEvent(msg.sender,amount);
 
     }
 

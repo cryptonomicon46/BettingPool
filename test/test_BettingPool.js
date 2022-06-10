@@ -273,32 +273,27 @@ contract('Betting Pool and Mint', async (accounts) => {
 
 
 
-    it("Accept bets and number of betters and campaign balance.", async() => { 
-
-        //Confirm the number of bidders and the total amount
- 
+    it("Accept bets and check number of betters and campaign balance.", async() => { 
 
 
-        result = await bettingPool.getCampaignInfo(1,{from:deployer})
+        let stopBetDuration = time.duration.seconds(604800); //7 days from Friday
+        let revealBetDuration = time.duration.seconds(3456000); //4 days
 
-        // // console.log(result[6].toString())
-        assert.equal(result[0].toString(),'0')
-        assert.equal(result[1].toString(),'1')
-        assert.equal(result[2].toString(),c1_endBet.toString()) //1655319599000
-        assert.equal(result[3].toString(),c1_reveal.toString()) //1655665199000
+        startTime = await bettingPool.currentBlockStamp({from: deployer})
+        // console.log('CurrentBlockTimeStamp:',startTime.toString());
 
+        //Advance to stop time
+        const stopTime_BN = web3.utils.toBN(startTime).add(stopBetDuration)
+        // console.log('StopBet Timestamp:',stopTime_BN.toString());
 
-        //Three accounts bet on Campaign1 for Racer#46
-        await bettingPool.bet(1,46,{from:sender1, value: web3.utils.toWei('0.5')})
-        await bettingPool.bet(1,46,{from:sender2, value: web3.utils.toWei('0.3')})
-        await bettingPool.bet(1,46,{from:sender3, value: web3.utils.toWei('0.2')})
-        // result = await bettingPool.getCampaignInfo(1,{from:deployer})
-        
-        //Check the TotalAmount and number of bidders for the campaign
-        result = await bettingPool.getCampaignInfo(1,{from:deployer})
+        await bettingPool.setCampaign(0,2,stopTime_BN,{from: deployer})
+         await bettingPool.bet(2,46,{from:sender1, value: web3.utils.toWei('0.5')}) //Winner
+        await bettingPool.bet(2,46,{from:sender2, value: web3.utils.toWei('0.3')})
+        await bettingPool.bet(2,46,{from:sender3, value: web3.utils.toWei('0.2')})
 
-        assert.equal(result[5].toString(),'3')
-        assert.equal(result[6].toString(),web3.utils.toWei('1'))
+        result = await bettingPool.getCampaignInfo(2,{from:deployer})
+        assert.equal(result[5].toString(),'3') //stage
+        assert.equal(result[6].toString(),web3.utils.toWei('1')) //totalAmount
 
     })
 
