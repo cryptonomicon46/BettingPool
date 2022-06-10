@@ -7,9 +7,9 @@ function tokens(n) {
 }
 
 
-const ids =[46,93,99,27,5]; 
+const ids =[46,93,99,27]; 
 
-const  maxAmounts = [50,25,25,25,0];
+const  maxAmounts =  [30,20,20,20];
 
 
 module.exports = async function (deployer) {
