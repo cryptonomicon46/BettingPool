@@ -58,6 +58,11 @@ https://docs.polygon.technology/docs/develop/network-details/network/
 https://chainlist.org/
 Search for your network and add it
 
+Notes: 
+Documentation
+Refactor Code
+Every function only does one thing
+Onwer and dev can participate
 
 
 
