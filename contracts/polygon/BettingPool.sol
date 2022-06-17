@@ -175,19 +175,19 @@ contract BettingPool is ERC1155{
     }
 
 
-   function changeStage(uint campaignId_) external onlyBy(owner) returns (uint) {
-        BettingCampaign storage b_camp = _getCampaign(campaignId_);
+//    function changeStage(uint campaignId_) external onlyBy(owner) returns (uint) {
+//         BettingCampaign storage b_camp = _getCampaign(campaignId_);
 
-        if (b_camp.stage == Stages.AcceptingBets &&
-                    block.timestamp >= b_camp.stopDate)
-            b_camp.stage = Stages.Closed;
-            // nextStage(campaignId_);
-        if (b_camp.stage == Stages.Closed &&
-                block.timestamp >= b_camp.revealDate)
-            // nextStage(campaignId_);
-            b_camp.stage = Stages.RevealWinner;
-        return uint(b_camp.stage);
-    }
+//         if (b_camp.stage == Stages.AcceptingBets &&
+//                     block.timestamp >= b_camp.stopDate)
+//             b_camp.stage = Stages.Closed;
+//             // nextStage(campaignId_);
+//         if (b_camp.stage == Stages.Closed &&
+//                 block.timestamp >= b_camp.revealDate)
+//             // nextStage(campaignId_);
+//             b_camp.stage = Stages.RevealWinner;
+//         return uint(b_camp.stage);
+//     }
 
     // uint256[]  prices = [0.2 ether, 0.1 ether, 0.1 ether, 0.1 ether];
 
@@ -223,8 +223,8 @@ contract BettingPool is ERC1155{
 //Test campaign mint date is 1 minute from block.timestamp and accepts bids for 30 seconds only
 function setCampaign( BettingPoolSel bettingPoolSel_,
                         uint8 raceNum_,
-                        uint256 betStopDate_
-                        ) public onlyBy(owner) {
+                        uint256 betStopDate_,
+                        Stages stage_) public onlyBy(owner) {
 
                     require(raceNum_>0, "Invalid Race Number");
                     uint campaignID;
@@ -236,7 +236,8 @@ function setCampaign( BettingPoolSel bettingPoolSel_,
                     // b_camp.revealDate = betStopDate_ + 345600000;//4 days in ms
                     b_camp.revealDate = betStopDate_ + 345600;//4 days in seconds
 
-                    b_camp.stage = Stages.AcceptingBets;    
+                    // b_camp.stage = Stages.AcceptingBets;   
+                    b_camp.stage = stage_; 
         }
 
 
@@ -247,7 +248,7 @@ function bet(uint campaignId_,uint racerNum_)
         atStage(campaignId_,Stages.AcceptingBets) 
         {
 
-        require(msg.sender != owner && msg.sender != devAddress,"Owner and devs cannot bid on this auction");
+        // require(msg.sender != owner && msg.sender != devAddress,"Owner and devs cannot bid on this auction");
 
             if (campaignId_ <=0) revert IndexError();
 
@@ -264,7 +265,7 @@ function bet(uint campaignId_,uint racerNum_)
             b_camp.totalAmount += msg.value;
                          
         }
-
+//Refactor revealWinner, Payouts 
 
     function revealWinner(uint campaignId_,uint winningRacer_) 
         external    
@@ -315,7 +316,7 @@ function bet(uint campaignId_,uint racerNum_)
         pendingWithdrawal[devAddress] = pendingWithdrawal[devAddress]  +  b_camp.payment.devFees;
         // pendingWithdrawal[beneficiaryAddress] = payment.ownerFees;
         pendingWithdrawal[topBidder.addr] =pendingWithdrawal[topBidder.addr] + b_camp.payment.winnerAmount;
-                          }
+        }
 
 function getWinner(uint campaignId_) 
         external 
