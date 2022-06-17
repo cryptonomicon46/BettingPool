@@ -4,69 +4,27 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol"; //Safemath no longer needed Sol v0.8.0 onwards
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./Interfaces.sol";
 
-contract BettingPool is ERC1155{
+contract BettingPool is ICampaign, ERC1155{
 
     using SafeMath for uint256;// Not needed solidity v0.8.0 as illegal arithmetic operations will revert automatically
     
     string private _baseURI=  "https://ipfs.io/ipfs/QmcDRWwXCE1LjvdESNZsmc75syTJP2zA8WW9SHEaCwEmkc/";
     string private baseExtension = ".json";
-
-
-    // uint public  contractExpiry; 
+    uint256[]  ids;
+    uint256[]  maxAmounts;
     uint256 private _royaltyFee = 5; 
-    // uint EXPIRY = 365 days;
     uint public immutable startedAt;
     address payable public  owner;
-    // address internal  devAddress; 
     uint public  numCampaigns=1;
     address payable public devAddress; //payable?
-//    uint public mintEndTime;
-//Keep track of the NFT Reserves
-    struct NFTInfo {
-        uint256 id;
-        // uint256 price;
-        uint256 reserves;
-        }
 
     NFTInfo[] private nftInfo;
+    Bidder[] private bidder;
 
+   mapping (uint => Bidder) public campaignIdToBids;
 
-    struct Bidder {
-        address addr;
-        uint amount;
-        uint timeStamp;
-    }
-   Bidder[] private bidder;
-
-
-    mapping (uint => Bidder) public campaignIdToBids;
-
-    struct Payment {
-        uint totalAmount;
-        uint devFees;
-        uint winnerAmount;
-         address winnerAddress;
-         uint timeStamp;
-    }
-
-    struct BettingCampaign {
-        BettingPoolSel bettingPoolSel;
-        uint8 raceNum;
-        uint mintDate;
-        Stages stage;
-         uint stopDate; //Bidding stopped
-        uint revealDate;  //Reveal Winners
-        mapping (uint => mapping(address=>bool)) checkDuplicateBet;
-        uint numBidders; //Total Number of bidders for all racers in the selected campaign
-        uint totalAmount; //Total Amount bet on all racers in the selected campaign
-        mapping (uint => Bidder[]) bidders; //Racer Number to Bidder Info  
-        Payment payment;
-    }
-
-
-    enum  BettingPoolSel { MotoGp, Moto2, WSBK}
-    enum Stages {AcceptingBets, Closed, RevealWinner}
     Stages[] stage; 
     BettingPoolSel internal bettingPoolSel;
     BettingPoolSel defaultBettingPool = BettingPoolSel.MotoGp;
@@ -118,23 +76,6 @@ contract BettingPool is ERC1155{
 
 
 
-    // modifier atStage(uint campaignId_,Stages _stage) {
-    //     BettingCampaign storage b_camp = _getCampaign(campaignId_);
-
-    //     if (block.timestamp >= b_camp.stopDate)
-    //         b_camp.stage = Stages.Closed;
-    //     if (block.timestamp*1000 >= b_camp.revealDate)
-    //         b_camp.stage = Stages.RevealWinner;
-    //             // _; 
-
-    //     if (b_camp.stage != _stage)
-    //         revert FunctionInvalidAtThisStage();
-    //     _;
-    // }
-
-
-
-
     modifier timedTransitions(uint campaignId_) {
 
         BettingCampaign storage b_camp = _getCampaign(campaignId_);
@@ -174,26 +115,6 @@ contract BettingPool is ERC1155{
         _;
     }
 
-
-//    function changeStage(uint campaignId_) external onlyBy(owner) returns (uint) {
-//         BettingCampaign storage b_camp = _getCampaign(campaignId_);
-
-//         if (b_camp.stage == Stages.AcceptingBets &&
-//                     block.timestamp >= b_camp.stopDate)
-//             b_camp.stage = Stages.Closed;
-//             // nextStage(campaignId_);
-//         if (b_camp.stage == Stages.Closed &&
-//                 block.timestamp >= b_camp.revealDate)
-//             // nextStage(campaignId_);
-//             b_camp.stage = Stages.RevealWinner;
-//         return uint(b_camp.stage);
-//     }
-
-    // uint256[]  prices = [0.2 ether, 0.1 ether, 0.1 ether, 0.1 ether];
-
-
-    uint256[]  ids;
-    uint256[]  maxAmounts;
 
     
  constructor  (
@@ -241,14 +162,12 @@ function setCampaign( BettingPoolSel bettingPoolSel_,
         }
 
 
-function bet(uint campaignId_,uint racerNum_) 
+function bet(uint campaignId_,uint8 racerNum_) 
         public    
         payable
         timedTransitions(campaignId_)
         atStage(campaignId_,Stages.AcceptingBets) 
         {
-
-        // require(msg.sender != owner && msg.sender != devAddress,"Owner and devs cannot bid on this auction");
 
             if (campaignId_ <=0) revert IndexError();
 
@@ -268,12 +187,10 @@ function bet(uint campaignId_,uint racerNum_)
 //Refactor revealWinner, Payouts 
 
     function revealWinner(uint campaignId_,uint winningRacer_) 
-        external    
-        payable
+        public    
         timedTransitions(campaignId_)
         atStage(campaignId_,Stages.RevealWinner) 
         onlyBy(owner)
-        // returns (address, uint) 
         {
         BettingCampaign storage b_camp = _getCampaign(campaignId_);
         // Payment memory payment;
@@ -305,19 +222,24 @@ function bet(uint campaignId_,uint racerNum_)
 
         b_camp.payment.winnerAddress = topBidder.addr;
         b_camp.payment.timeStamp=  topBidder.timeStamp;
-        // //Mint NFT to the winner 
-        mintSingle(winningRacer_,topBidder.addr);
-        // // //Calculate and Pay Royalty Fee to owner/platform
-        b_camp.payment.devFees = (b_camp.payment.totalAmount).mul(_royaltyFee).div(100);
-        // // //Owner withdraws the balance funds
-        b_camp.payment.winnerAmount = (b_camp.payment.totalAmount).sub(b_camp.payment.devFees);
 
-        // //Using the pendingWithdrawal method
-        pendingWithdrawal[devAddress] = pendingWithdrawal[devAddress]  +  b_camp.payment.devFees;
-        // pendingWithdrawal[beneficiaryAddress] = payment.ownerFees;
-        pendingWithdrawal[topBidder.addr] =pendingWithdrawal[topBidder.addr] + b_camp.payment.winnerAmount;
         }
 
+function awardTheWinner(uint campaignId_,uint winningRacer_) 
+        public 
+        payable
+        timedTransitions(campaignId_)
+        atStage(campaignId_,Stages.RevealWinner) 
+        onlyBy(owner)  {
+        BettingCampaign storage b_camp = _getCampaign(campaignId_);
+
+        mintSingle(winningRacer_,b_camp.payment.winnerAddress);
+        b_camp.payment.devFees = (b_camp.payment.totalAmount).mul(_royaltyFee).div(100);
+        b_camp.payment.winnerAmount = (b_camp.payment.totalAmount).sub(b_camp.payment.devFees);
+        pendingWithdrawal[devAddress] = pendingWithdrawal[devAddress]  +  b_camp.payment.devFees;
+        pendingWithdrawal[b_camp.payment.winnerAddress] =pendingWithdrawal[b_camp.payment.winnerAddress] + b_camp.payment.winnerAmount;
+
+}
 function getWinner(uint campaignId_) 
         external 
         view
@@ -334,7 +256,8 @@ function getWinner(uint campaignId_)
 //MINT SINGLE : START 
 
     function mintSingle(uint256 _id,address highestBidder)
-     internal
+     public
+    onlyBy(owner) 
     {
        if (msg.sender == address(0)) revert InvalidAddress();
            
@@ -344,7 +267,7 @@ function getWinner(uint campaignId_)
         nftReserves = nftInfo[_idx].reserves;
         require( nftReserves >= 0,"ERC1155: Sorry, this NFT's sold out!");
         //Update NFT Reserves
-        _updateReserves(_idx,1);
+        updateReserves(_idx,1);
 
         //Mint to the calling account address
         _mint(highestBidder,_id,1,""); //1:1 NFT minted to the  winner of the campaign
@@ -392,7 +315,7 @@ function getWinner(uint campaignId_)
         return block.timestamp;
     }
 
-    function returnNumberBidders(uint campaignId_,uint racerNum_) 
+    function returnNumberBidders(uint campaignId_,uint8 racerNum_) 
             public 
             view 
             onlyBy(owner)
@@ -404,11 +327,11 @@ function getWinner(uint campaignId_)
     }
 
 
-    function setCampaignStage(uint campaignId_, uint stage_) external onlyBy(owner) {
-        BettingCampaign storage b_camp = _getCampaign(campaignId_);
-        b_camp.stage = Stages(stage_);
+    // function setCampaignStage(uint campaignId_, uint stage_) external onlyBy(owner) {
+    //     BettingCampaign storage b_camp = _getCampaign(campaignId_);
+    //     b_camp.stage = Stages(stage_);
 
-    }
+    // }
     
 
     //ERC1155: Returns the tokenURI of TokenId
@@ -430,7 +353,7 @@ function getWinner(uint campaignId_)
         return nftInfo[idx_];
     }   
 
-    function _updateReserves(uint256 _idx,uint256 amount) internal {
+    function updateReserves(uint256 _idx,uint256 amount) internal {
         if (nftInfo[_idx].reserves < amount) revert ErrorNFTReserves();
         nftInfo[_idx].reserves -= amount;
         emit NFTReservesUpdated(_idx, amount);

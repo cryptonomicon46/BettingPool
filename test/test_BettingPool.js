@@ -335,6 +335,7 @@ contract('Betting Pool and Mint', async (accounts) => {
 
         //Get Winner for campaign#2 for winning racer #46
         await bettingPool.revealWinner(1,46,{from: deployer})
+        await bettingPool.awardTheWinner(1,46,{from:deployer})
 
         result = await bettingPool.getWinner(1)
         // console.log(`Winner Address: ${result[0].toString()}`)
@@ -448,7 +449,7 @@ contract('Betting Pool and Mint', async (accounts) => {
         result = await bettingPool.currentBlockStamp({from: deployer})
         const revealTime_BN1 = web3.utils.toBN(result).add(revealBetDuration)
         await time.increase(revealTime_BN1);
-
+        
 
         // await bettingPool.changeStage(1,{from:deployer}) //Prompt a stage transition
 
@@ -459,6 +460,7 @@ contract('Betting Pool and Mint', async (accounts) => {
 
         //Get Winner for campaign#2 for winning racer #27
         await bettingPool.revealWinner(1,46,{from: deployer})
+        await bettingPool.awardTheWinner(1,46,{from:deployer})
 
         result = await bettingPool.getWinner(1)
         // console.log(`Winner Address: ${result[0].toString()}`)
@@ -522,6 +524,8 @@ contract('Betting Pool and Mint', async (accounts) => {
 
       //Get Winner for campaign#2 for winning racer #46
       await bettingPool.revealWinner(2,27,{from: deployer})
+      await bettingPool.awardTheWinner(2,27,{from:deployer})
+
 
       result = await bettingPool.getWinner(2)
       // console.log(`Winner Address: ${result[0].toString()}`)
@@ -584,6 +588,7 @@ contract('Betting Pool and Mint', async (accounts) => {
 
       //Get Winner for campaign#2 for winning racer #46
       await bettingPool.revealWinner(3,93,{from: deployer})
+      await bettingPool.awardTheWinner(3,93,{from:deployer})
 
       result = await bettingPool.getWinner(3)
       // console.log(`Winner Address: ${result[0].toString()}`)
